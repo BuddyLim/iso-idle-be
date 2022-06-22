@@ -26,6 +26,7 @@
   "homepage": "https://github.com/BuddyLim/rtc#readme",
   "dependencies": {
     "@types/socket.io": "^3.0.2",
+    "@types/uuid": "^8.3.4",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",

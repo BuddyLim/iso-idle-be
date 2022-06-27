@@ -5,6 +5,7 @@ import { ServerToClientEvents, ClientToServerEvents, InterServerEvents, SocketDa
 const cors = require('cors')
 
 import dotenv from 'dotenv';
+import { Scene } from './models/Scene.model';
 dotenv.config();
 
 // App setup
@@ -30,27 +31,38 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 app.use(cors())
 
 const SocketIDSet = new Set<string>()
+const currentScene = new Scene()
 
 io.on("connection", (socket) => {
   const { id } = socket
-
+  const uuid = uuidv4()
   // socket.on("message", () => {
   //   console.log("New message")
   // })
 
   socket.on("disconnect", () =>{
-    console.log(`Closed connection for socket.${id}`)
+    console.log(`Closed connection for socket.${id} for session ${uuid}`)
+    socket.broadcast.emit("remove-session", uuid);
+    currentScene.removeUser(uuid)
     SocketIDSet.delete(id)
   })
 
-  SocketIDSet.add(id)
+  socket.on("update-player-pos", (uuid, posX, posY, currentAnim) =>{
+    socket.broadcast.emit("update-player-pos", uuid, posX, posY, currentAnim);
+    currentScene.handeUserMovement(uuid, posX, posY)
+  })
 
-  io.emit("current-connections", [...SocketIDSet] )
+  console.log(`New socket ${id} for session ${uuid}`)
+  SocketIDSet.add(id)
+  currentScene.addUser(uuid)
+  io.emit("new-connection", uuid, currentScene.obtainCurrentSceneInfo())
+  // io.emit("current-scene-info", currentScene.obtainCurrentSceneInfo())
 });
 
 const serverShutdown = () =>{
   server.close(() => {
     SocketIDSet.clear()
+    currentScene.shutdownScene()
     console.log('Closed out remaining connections');
     process.exit(0);
   });
